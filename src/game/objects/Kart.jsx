@@ -1,7 +1,7 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { PALETTE } from './palette'
-import { ISLAND_RADIUS } from './Island'
+import { PALETTE } from '../config/palette'
+import { ISLAND_RADIUS } from '../world/Island'
 
 const ACCELERATION = 7
 const BRAKE_ACCELERATION = 10

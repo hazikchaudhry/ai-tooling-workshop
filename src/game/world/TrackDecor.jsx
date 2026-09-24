@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import * as THREE from 'three'
-import { PALETTE } from './palette'
+import { PALETTE } from '../config/palette'
 import {
   TRACK_SAMPLES,
   TRACK_Y,
@@ -10,7 +10,7 @@ import {
   trackSegment,
   trackVertex,
   trackWidthAt,
-} from './trackLayout'
+} from '../config/trackLayout'
 
 // Shared bleacher-block shape used both at the start line and at the
 // corners below - a group placed at a track point and rotated to its

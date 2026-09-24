@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
-import { PALETTE } from './palette'
-import { TRACK_SAMPLES, trackVertex, trackWidthAt } from './trackLayout'
+import { PALETTE } from '../config/palette'
+import { TRACK_SAMPLES, trackVertex, trackWidthAt } from '../config/trackLayout'
 
 // Deterministic pseudo-random so decoration layout is stable across renders.
 function seededRandom(seed) {

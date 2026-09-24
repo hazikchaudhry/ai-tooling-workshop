@@ -4,19 +4,28 @@ Everything for the AI Tooling workshop, in one file: the game setup,
 the color-palette convention the recolor demos rely on, getting
 OpenCode running, and the full feature tour — what to say, how it's
 built in this repo, and the exact command to run, in the order you're
-presenting it. Every command and every "confirmed" note below was
-actually run against this repo's free zero-config model before being
-written down.
+presenting it. The "confirmed" notes below were run against OpenCode's
+free `opencode/` models; the config itself doesn't pin a model, so
+you and every attendee can pick whichever one you like.
+
+**Attendee guide:** https://claude.ai/artifact/EGXd9D2RmVW1EhWxb22wZ9
+is the same workshop written for the room, step by step with copy
+buttons. It's private until you share it from the page's Share menu,
+so share it before the session.
 
 This folder is the **starting state** — no `opencode.json`, no
 `.opencode/`. Every file in §2–3 below gets created live, from
 scratch, during the session; that's the point, the payoff is watching
 each one come alive as you write it, not inspecting one that already
-works. A fully built, pre-tested copy of everything (including the
-final `opencode.json` and `.opencode/`) lives in the sibling
-`ai-tooling-workshop-completed/` folder — don't open it in front of
-the room, but it's there to copy-paste from if a live edit goes
-sideways, or to diff against if something isn't behaving.
+works.
+
+Every file you write is also sitting finished in `workshop/`, with a
+README mapping each one to where it goes. That's your in-repo cheat
+sheet: copy from it if a live edit goes sideways, and attendees who
+fall behind can copy from it to catch up. OpenCode ignores that
+folder, so it doesn't spoil anything. A full copy of the finished
+repo also lives in the sibling `ai-tooling-workshop-completed/`
+folder, for diffing a whole working setup against a broken one.
 
 ## 0. Before you start — run the game (5 min)
 
@@ -28,19 +37,19 @@ npm run dev
 Open the game, confirm it loads, drive around once. Then skim
 `src/game/`:
 
-- `trackLayout.js` — the track's spline, width, and all the derived
+- `config/trackLayout.js` — the track's spline, width, and all the derived
   numbers (`trackVertex`, `trackWidthAt`, `BEACH_ANGLE`, …) everything
   else is built from
-- `Island.jsx` — the island terrain plus its `Tree`/`Rock` decorations
-- `Kart.jsx` — the player kart, its controls, and its colors
-- `Beach.jsx`, `TrackDecor.jsx`, `StartLine.jsx` — other scene pieces,
-  same conventions
-- `palette.js` — every color in the game. No component hardcodes a hex
+- `world/Island.jsx` — the island terrain plus its `Tree`/`Rock` decorations
+- `objects/Kart.jsx` — the player kart, its controls, and its colors
+- `world/Beach.jsx`, `world/TrackDecor.jsx`, `world/StartLine.jsx` — other
+  scene pieces, same conventions
+- `config/palette.js` — every color in the game. No component hardcodes a hex
   value; they all import from here.
 
 ## 1. The color palette convention (5 min)
 
-`src/game/palette.js` is the single source of truth for every color
+`src/game/config/palette.js` is the single source of truth for every color
 in the scene, grouped into three categories:
 
 - `background` — sky, fog
@@ -87,8 +96,21 @@ Confirm it installed:
 opencode --version
 ```
 
-If nothing prints, close and reopen the terminal so PATH refreshes,
-then try again.
+If you get `command not found: opencode`, the install almost
+certainly worked and the terminal just hasn't picked up the new PATH.
+The installer adds `export PATH=$HOME/.opencode/bin:$PATH` to
+`~/.zshrc`, but a terminal that was already open before the install
+never reads that line. Open a new terminal tab, or run
+`source ~/.zshrc`, then try `opencode --version` again. To confirm the
+binary is really there, `ls ~/.opencode/bin` should show `opencode`.
+
+**Don't reach for Homebrew as a fallback on a Mac.** Installing via
+`brew install anomalyco/tap/opencode-v2` downloaded fine on my test
+machine and then refused to install with `Your Xcode (26.6) at
+/Applications/Xcode.app is too outdated. Please update to Xcode 27.0
+(or delete it).` That's a multi-gigabyte App Store update, not
+something to fix mid-session. Anyone with Xcode installed but not
+current will hit this. Stick with the curl installer above.
 
 ### 2.2 First look at the TUI
 
@@ -101,22 +123,32 @@ You should see the OpenCode logo, an "Ask anything" box, and the
 current agent/model name at the bottom of that box. `/exit` or ctrl+c
 to leave. If you get a blank screen instead, see §5 (Troubleshooting).
 
-### 2.3 Pick a model — free tier, zero key
+### 2.3 Pick a model — any one you like
+
+The config deliberately doesn't name a model, so everyone picks their
+own. Inside the TUI:
+
+```
+/models
+```
+
+Pick anything from the list. The ones named `opencode/...` are
+OpenCode's own free hosted models (OpenCode Zen): no signup, no key,
+so they're the easy default for a room. Anyone with their own
+Anthropic, OpenAI or OpenRouter key can run `opencode auth login` and
+pick one of those instead; nothing else in this workshop depends on
+which model answers.
+
+To see the full list from a plain terminal, and to test that a model
+answers without opening the TUI (swap in any name from the list):
 
 ```bash
 opencode models
+opencode run "say hello in exactly 3 words" --model opencode/big-pickle
 ```
 
-OpenCode ships its own free hosted models under the `opencode/`
-provider (OpenCode Zen) — zero signup, zero key. This repo's config
-already points at `opencode/nemotron-3-ultra-free`. Confirm a model
-actually responds without opening the full TUI:
-
-```bash
-opencode run "say hello in exactly 3 words" --model opencode/nemotron-3-ultra-free
-```
-
-**Confirmed** — short reply comes back, no auth needed.
+**Confirmed** — short reply comes back from the free models, no auth
+needed.
 
 ### 2.4 The harness config file — `opencode.json`
 
@@ -131,21 +163,52 @@ instead of your editor.
 Change it, and you have to restart OpenCode to see the change — call
 this out early, it trips people up the first time.
 
-This repo's `opencode.json` is already the full quick-reference
-version (see §4) — model, default agent, permissions, and the MCP
-server all in one place. To sanity-check what actually loaded at any
-point:
+Create `opencode.json` in the repo root. This first pass is the base
+harness; §3.4 adds a `permission` block to it and §3.5 adds `mcp`
+(the finished file is in §4 and in `workshop/opencode.json`):
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "default_agent": "build",
+  "autoupdate": "notify",
+  "share": "disabled",
+  "watcher": {
+    "ignore": ["node_modules/**", "dist/**"]
+  }
+}
+```
+
+Walk through it line by line — every field is here for a reason a
+room will understand:
+
+- **`$schema`** — your editor now autocompletes and underlines typos.
+  Worth it, because OpenCode refuses to start on an invalid field.
+- **`default_agent: "build"`** — start in the agent that can actually
+  make changes (`plan` is the read-only alternative).
+- **No `model` line** — on purpose. Everyone picks their own with
+  `/models` (§2.3), and nobody's config is tied to one model that
+  might get renamed or retired.
+- **`autoupdate: "notify"`** — OpenCode normally updates itself on
+  startup. For a workshop you want every machine on the same version
+  for the whole session, so it just tells you an update exists
+  instead.
+- **`share: "disabled"`** — no conversation can accidentally become a
+  public share link. Sensible default anywhere, especially on a room
+  full of laptops.
+- **`watcher.ignore`** — stops OpenCode watching `node_modules` and
+  the build output, which churn constantly and have nothing it needs.
+
+Restart OpenCode, then check what it actually loaded:
 
 ```bash
 opencode debug config
 ```
 
-**Confirmed** — prints the fully merged config; I verified every
-field (model, `default_agent`, `permission`, `mcp`, plus the
-`reviewer` subagent and `retheme` command, both auto-discovered from
-`.opencode/`) shows up correctly in one shot. This is the best command
+Every field above should show in the output. This is the best command
 to lean on live if anyone asks "did that config change actually take
-effect."
+effect." (Every field here was checked against OpenCode's published
+schema at https://opencode.ai/config.json.)
 
 ## 3. The feature tour
 
@@ -177,7 +240,7 @@ agent: build
 Reskin the Isle of Orbs scene to match this theme: $ARGUMENTS
 
 1. Load the color-palette skill first if it hasn't already loaded.
-2. Rewrite the color values in `src/game/palette.js` to fit the theme,
+2. Rewrite the color values in `src/game/config/palette.js` to fit the theme,
    keeping every existing key name exactly as it is - only the hex
    values change, so every component that already imports them updates
    automatically with no other file edits.
@@ -220,12 +283,12 @@ Where it lives: `.opencode/skills/color-palette/SKILL.md`.
 ```markdown
 ---
 name: color-palette
-description: Rules for this project's low-poly color palette in src/game/palette.js. Load whenever the user asks to recolor, retheme, or reskin anything in the Isle of Orbs scene - the kart, the island, the track, the beach, all of it.
+description: Rules for this project's low-poly color palette in src/game/config/palette.js. Load whenever the user asks to recolor, retheme, or reskin anything in the Isle of Orbs scene - the kart, the island, the track, the beach, all of it.
 ---
 
 # Color palette
 
-`src/game/palette.js` is the single source of truth for every color in
+`src/game/config/palette.js` is the single source of truth for every color in
 the scene, grouped into three categories:
 
 - `background` - sky, fog
@@ -277,42 +340,103 @@ agent stays a generalist and hands off a specific task to something
 purpose-built for it.
 **Analogy:** calling in a specialist consultant for one question,
 rather than making your generalist do everything themselves.
-**One thing to remember:** a sub agent cannot call another sub agent.
-Only a primary agent (like the default `build` agent) can call one in
-— one level of delegation, full stop, no infinite chains. This is
-usually the first question someone asks, so get ahead of it.
+**One thing to remember:** by default a sub agent cannot call another
+sub agent. Only a primary agent (like the default `build` agent) can
+call one in — one level of delegation, no infinite chains. That limit
+is a setting, `subagent_depth` in `opencode.json`, and it defaults to
+`1`: set it to `2` to allow one more level of nesting, or `0` to turn
+sub agents off entirely. This is usually the first question someone
+asks, so get ahead of it.
 
-Where it lives: `.opencode/agents/reviewer.md`.
+Where it lives: `.opencode/agents/reviewer.md`. The filename becomes
+the agent's name, so `reviewer.md` gives you an agent called
+`reviewer`.
 
 ```markdown
 ---
-description: Reviews code for bugs and missing tests.
+description: A pirate code reviewer. Reviews code for bugs, risky logic, and missing tests. Use when the user asks for a code review or asks for the reviewer.
 mode: subagent
 ---
 
-You are a strict code reviewer. When asked to review something, reply with exactly: "Reviewer subagent is active."
+You are a strict code reviewer who talks like a pirate.
+
+Stay in character for your whole reply: pirate slang throughout, and end every sentence with "arr".
+
+When you're given code or a file to review:
+1. Read the actual code before judging it.
+2. Point out real bugs, risky logic, and anything that's missing tests, naming the file and line for each.
+3. If the code looks fine, say so plainly instead of inventing problems.
+4. Finish with a one-line verdict: shipshape, or needs work.
 ```
 
-`mode: subagent` is what marks this as something other agents can
-call in, rather than something you switch into directly. Confirm it
-was picked up:
+Two frontmatter fields matter. `description` is required, and it's
+what the main agent reads to decide when to call this one in, so say
+plainly what it does and when to use it. `mode: subagent` marks it as
+something other agents call in, rather than something you switch into
+yourself. The pirate voice is there on purpose: when the reply comes
+back talking like a pirate, the room can see at a glance that it was
+the subagent answering and not the main agent.
+
+**Gotcha worth showing:** put instructions *outside* any quoted text.
+An earlier draft said `reply with exactly: "Reviewer subagent is
+active. Respond like you are a pirate..."`, and the agent just recited
+that whole sentence back word for word, because anything inside
+"reply with exactly" is text to repeat, not an instruction to follow.
+
+Confirm it was picked up:
 
 ```bash
 opencode agent list
 ```
 
 You should see `reviewer (subagent)` alongside the built-in agents.
-To see it in action:
+
+**How a subagent actually gets called.** There are three ways, and
+the difference matters live:
+
+1. **@mention (use this one in the demo).** Type `@reviewer` at the
+   start of your message. It calls that agent directly, every time:
+
+   ```
+   @reviewer review src/game/objects/Kart.jsx
+   ```
+
+   Typing `@` also pops up an autocomplete list of agents. If
+   `reviewer` isn't in that list, OpenCode didn't load the file, so
+   quit and restart it.
+2. **Automatic.** Say "use the reviewer to review Kart.jsx" in plain
+   English and the main agent *may* hand it off, based on the
+   `description`. That's the model's call, not yours, and the free
+   model often just does the review itself instead. This is the most
+   common reason people think their subagent "isn't working".
+3. **The Task tool.** This is what automatic delegation uses under the
+   hood. A `task` entry in the `permission` block controls which
+   subagents the main agent may call. It's allowed by default, and
+   setting it to `deny` for an agent hides that agent from the main
+   agent entirely.
+
+**Where the answer shows up.** A subagent runs in its own child
+session, so the main conversation may only show a step like
+"Reviewer Agent ✓" and a short summary, not the full pirate review.
+To read what the subagent actually said, press `ctrl+x` then the down
+arrow to jump into its session. The up arrow takes you back to the
+main conversation, and left/right cycle between child sessions if
+there's more than one. Show this live; it's the second most common
+"it didn't work" moment.
+
+For a quick check from a plain terminal, an older version of this
+agent (one that replied with a fixed line when pinged) was tested
+end to end on the free tier with:
 
 ```bash
 opencode run --auto "call the reviewer subagent right now with the message 'ping' and tell me exactly what it replied"
 ```
 
-**Confirmed clean end-to-end** — the primary agent picked `reviewer`
-as a step and it came back with its reply, free tier, no key.
+The primary agent picked `reviewer` as a step and came back with its
+reply, no key needed.
 
-> **One nuance, not a bug:** this repo's `opencode.json` sets
-> `"bash": "ask"` project-wide (deliberately, for §3.4). If a subagent
+> **One nuance, not a bug:** once §3.4 is done, `opencode.json` makes
+> most shell commands "ask" first (deliberately). If a subagent
 > needs `bash` and you're testing via `opencode run` *without*
 > `--auto` and with nobody there to answer a prompt, that "ask"
 > auto-rejects instead of pausing, and the subagent call fails — the
@@ -343,20 +467,30 @@ stop. Flip a setting, trigger the action, everyone in the room watches
 it stop and ask for approval in real time. Nothing else on this list
 is as visually convincing.
 
-This repo's config already has it set up:
+Add this `permission` block to `opencode.json`, right after
+`watcher` (mind the comma after the closing `}` of `watcher`):
 
 ```json
 "permission": {
   "edit": "ask",
-  "bash": "ask",
+  "bash": {
+    "*": "ask",
+    "git status*": "allow",
+    "git diff*": "allow",
+    "npm run lint*": "allow",
+    "rm *": "deny"
+  },
   "webfetch": "allow"
 }
 ```
 
-Each value is `allow`, `ask`, or `deny`. You can also target specific
-commands — `"bash": { "git *": "allow", "rm *": "deny", "*": "ask" }`
-— checked in order, last matching rule wins, so put the broad rule
-first and exceptions after it.
+Each value is `allow`, `ask`, or `deny`. `edit` and `webfetch` take
+one value for everything; `bash` here is split per command. Rules are
+checked in order and the last one that matches wins, so the broad
+`"*": "ask"` goes first and the exceptions after it. Read it out loud
+to the room as a sentence: "ask me before any shell command, except
+look-only git commands and the linter, which are fine, and never
+delete anything."
 
 ```bash
 opencode
@@ -384,8 +518,8 @@ reads on every turn. More tools isn't automatically better; for a demo
 pick one small server, not something large like a full GitHub
 integration.
 
-This repo's config already has one wired up, needing no account or
-key:
+Add this `mcp` block to `opencode.json`, after `permission` (mind the
+comma again). This server needs no account or key:
 
 ```json
 "mcp": {
@@ -443,17 +577,27 @@ next time OpenCode starts.
 
 ## 4. Quick reference
 
-By the end of the session, `opencode.json` looks like this (already in
-place in this repo):
+By the end of the session, `opencode.json` looks like this (the same
+file is in `workshop/opencode.json`):
 
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "opencode/nemotron-3-ultra-free",
   "default_agent": "build",
+  "autoupdate": "notify",
+  "share": "disabled",
+  "watcher": {
+    "ignore": ["node_modules/**", "dist/**"]
+  },
   "permission": {
     "edit": "ask",
-    "bash": "ask",
+    "bash": {
+      "*": "ask",
+      "git status*": "allow",
+      "git diff*": "allow",
+      "npm run lint*": "allow",
+      "rm *": "deny"
+    },
     "webfetch": "allow"
   },
   "mcp": {
@@ -466,13 +610,13 @@ place in this repo):
 }
 ```
 
-Plus these files alongside it:
+Plus these files alongside it, each also finished in `workshop/`:
 
 ```
-.opencode/skills/color-palette/SKILL.md
-.opencode/commands/retheme.md
-.opencode/agents/reviewer.md
-.opencode/plugin/hello.js
+.opencode/skills/color-palette/SKILL.md   ← workshop/skills/color-palette/SKILL.md
+.opencode/commands/retheme.md             ← workshop/commands/retheme.md
+.opencode/agents/reviewer.md              ← workshop/agents/reviewer.md
+.opencode/plugin/hello.js                 ← workshop/plugin/hello.js
 ```
 
 Useful commands while you work:
@@ -525,21 +669,35 @@ work through these in order:
 ## Appendix: repo map
 
 ```
-src/game/
-  trackLayout.js   track spline + derived geometry, single source of truth
-  Track.jsx        the road surface mesh
-  TrackDecor.jsx   kerbs + corner grandstands
-  StartLine.jsx    start/finish banner and grandstand
-  Island.jsx       island terrain + Tree/Rock decorations
-  Beach.jsx        beach props + parked decorative karts
-  Kart.jsx         player kart: controls, physics, model
-  Orb.jsx, PickupBurst.jsx   collectibles
-  CameraRig.jsx    chase camera
-  palette.js       every color in the game
+src/
+  App.jsx                    canvas + HUD wiring
+  ui/HUD.jsx                 on-screen score/overlay
+  hooks/useKeyboardControls.js
+  game/
+    Scene.jsx                puts everything together, game loop
+    config/
+      trackLayout.js         track spline + derived geometry, single source of truth
+      palette.js             every color in the game
+    world/
+      Track.jsx              the road surface mesh
+      TrackDecor.jsx         kerbs + corner grandstands
+      StartLine.jsx          start/finish banner and grandstand
+      Island.jsx             island terrain + Tree/Rock decorations
+      Beach.jsx              beach props + parked decorative karts
+    objects/
+      Kart.jsx               player kart: controls, physics, model
+      Orb.jsx                collectible orb
+    effects/
+      PickupBurst.jsx        orb pickup particles
+    camera/
+      CameraRig.jsx          chase camera
 
-opencode.json                          harness config, §2.4
-.opencode/commands/retheme.md          §3.1 slash command
-.opencode/skills/color-palette/SKILL.md   §3.2 skill
-.opencode/agents/reviewer.md           §3.3 sub agent
-.opencode/plugin/hello.js              §3.6 plugin
+opencode.json                          harness config, §2.4 (you create it)
+.opencode/commands/retheme.md          §3.1 slash command (you create it)
+.opencode/skills/color-palette/SKILL.md   §3.2 skill (you create it)
+.opencode/agents/reviewer.md           §3.3 sub agent (you create it)
+.opencode/plugin/hello.js              §3.6 plugin (you create it)
+
+workshop/                              every file above, finished, ready to copy
+  README.md                            which file goes where
 ```

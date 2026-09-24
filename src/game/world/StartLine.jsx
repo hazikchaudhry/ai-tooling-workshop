@@ -1,5 +1,5 @@
-import { PALETTE } from './palette'
-import { START_SEGMENT, TRACK_Y } from './trackLayout'
+import { PALETTE } from '../config/palette'
+import { START_SEGMENT, TRACK_Y } from '../config/trackLayout'
 import { Grandstand } from './TrackDecor'
 
 const HALF_TRACK = START_SEGMENT.width / 2

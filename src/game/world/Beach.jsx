@@ -1,5 +1,5 @@
-import { PALETTE } from './palette'
-import { BEACH_ANGLE, BEACH_RADIUS } from './trackLayout'
+import { PALETTE } from '../config/palette'
+import { BEACH_ANGLE, BEACH_RADIUS } from '../config/trackLayout'
 
 const FROND_COUNT = 5
 

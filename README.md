@@ -2,7 +2,13 @@
 
 A small low poly kart racing game built with React, Vite, and React Three Fiber. Drive a curvy island track, collect glowing orbs, and explore a beach along the way.
 
-This repo also doubles as the base project for an AI tooling workshop on OpenCode. See WORKSHOP.md for that part.
+This repo also doubles as the base project for an AI tooling workshop on OpenCode.
+
+## Workshop
+
+Follow along with the step by step guide: https://claude.ai/artifact/EGXd9D2RmVW1EhWxb22wZ9
+
+Every file you write during the workshop is also in the `workshop` folder, finished and ready to copy. The presenter's run sheet is WORKSHOP.md.
 
 ## Running it
 

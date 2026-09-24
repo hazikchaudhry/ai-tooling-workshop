@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import * as THREE from 'three'
-import { PALETTE } from './palette'
-import { TRACK_SAMPLES, TRACK_Y, trackNormalAt, trackVertex, trackWidthAt } from './trackLayout'
+import { PALETTE } from '../config/palette'
+import { TRACK_SAMPLES, TRACK_Y, trackNormalAt, trackVertex, trackWidthAt } from '../config/trackLayout'
 
 // Builds one continuous ribbon mesh that follows the track's spline,
 // widening and narrowing per trackWidthAt, rather than a ring of flat

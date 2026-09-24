@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { PALETTE } from './palette'
+import { PALETTE } from '../config/palette'
 
 export function Orb({ id, position }) {
   const bobRef = useRef()

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { Scene } from './game/Scene'
-import { HUD } from './game/HUD'
+import { HUD } from './ui/HUD'
 
 const TOTAL_ORBS = 6
 

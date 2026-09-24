@@ -1,7 +1,7 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { PALETTE } from './palette'
+import { PALETTE } from '../config/palette'
 
 const PARTICLE_COUNT = 10
 const DURATION = 0.7
